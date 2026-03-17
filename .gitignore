@@ -1,0 +1,33 @@
+# Virtual environment
+venv/
+
+# Secret keys
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Testing
+.pytest_cache/
+
+# VS Code
+.vscode/
+
+# Mac
+.DS_Store
+
+# Vector index (large binary files)
+data/faiss_index/
+
+# Model cache
+*.bin
+*.safetensors
+
+# Logs
+*.log
+
+# Assets (screenshots/gifs - add manually)
+assets/
