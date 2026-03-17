@@ -31,3 +31,5 @@ data/faiss_index/
 
 # Assets (screenshots/gifs - add manually)
 assets/
+
+data/raw_docs/
