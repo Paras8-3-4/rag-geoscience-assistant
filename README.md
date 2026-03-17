@@ -1,3 +1,13 @@
+---
+title: RAG Geoscience Assistant
+emoji: 🌍
+colorFrom: green
+colorTo: blue
+sdk: docker
+app_file: app.py
+pinned: false
+---
+
 # 🌍 RAG-Powered Geoscience Assistant
 
 > An AI assistant that answers geoscience questions grounded in real research 
