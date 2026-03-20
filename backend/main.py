@@ -112,13 +112,11 @@ def query_endpoint(request: QueryRequest):
 
 @app.delete("/reset")
 def reset_index():
-    import shutil
-    from config import FAISS_INDEX_PATH
-    if os.path.exists(FAISS_INDEX_PATH):
-        shutil.rmtree(FAISS_INDEX_PATH)
-        os.makedirs(FAISS_INDEX_PATH)
-    reset_chain()
-    from retriever import _vectorstore
-    import retriever
-    retriever._vectorstore = None
-    return {"message": "Index cleared. Upload new documents to start fresh."}
+    from retriever import reset_vectorstore
+    from rag_chain import reset_chain
+    try:
+        reset_vectorstore()
+        reset_chain()
+        return {"message": "Index cleared. Upload new documents to start fresh."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

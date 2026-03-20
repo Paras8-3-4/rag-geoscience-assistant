@@ -3,12 +3,14 @@ import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
 from langchain_community.embeddings import HuggingFaceEmbeddings
-from langchain_community.vectorstores import FAISS
 from langchain.schema import Document
-from config import EMBEDDING_MODEL, FAISS_INDEX_PATH, TOP_K
+from config import (
+    EMBEDDING_MODEL, PINECONE_API_KEY,
+    PINECONE_INDEX_NAME, TOP_K, EMBEDDING_DIMENSION
+)
 
-_vectorstore = None
 _embeddings = None
+_vectorstore = None
 
 
 def get_embeddings():
@@ -22,18 +24,20 @@ def get_embeddings():
 def get_vectorstore():
     global _vectorstore
     if _vectorstore is None:
+        from pinecone import Pinecone
+        from langchain_community.vectorstores import Pinecone as LangchainPinecone
+
+        print("Connecting to Pinecone...")
+        pc = Pinecone(api_key=PINECONE_API_KEY)
+        index = pc.Index(PINECONE_INDEX_NAME)
         embeddings = get_embeddings()
-        if os.path.exists(os.path.join(FAISS_INDEX_PATH, "index.faiss")):
-            print("Loading existing FAISS index...")
-            _vectorstore = FAISS.load_local(
-                FAISS_INDEX_PATH,
-                embeddings,
-                allow_dangerous_deserialization=True
-            )
-            print("Vector store loaded successfully.")
-        else:
-            print("No existing index found. Please upload documents first.")
-            _vectorstore = None
+
+        _vectorstore = LangchainPinecone(
+            index=index,
+            embedding=embeddings,
+            text_key="text"
+        )
+        print("Pinecone vectorstore ready.")
     return _vectorstore
 
 
@@ -46,15 +50,37 @@ def get_retriever():
 
 def add_documents(chunks: list[Document]) -> int:
     global _vectorstore
+    from pinecone import Pinecone
+    from langchain_community.vectorstores import Pinecone as LangchainPinecone
+
     embeddings = get_embeddings()
+    pc = Pinecone(api_key=PINECONE_API_KEY)
+    index = pc.Index(PINECONE_INDEX_NAME)
+
+    print(f"Adding {len(chunks)} chunks to Pinecone...")
 
     if _vectorstore is None:
-        print("Creating new FAISS index from uploaded documents...")
-        _vectorstore = FAISS.from_documents(chunks, embeddings)
-    else:
-        print(f"Adding {len(chunks)} chunks to existing index...")
-        _vectorstore.add_documents(chunks)
+        _vectorstore = LangchainPinecone(
+            index=index,
+            embedding=embeddings,
+            text_key="text"
+        )
 
-    _vectorstore.save_local(FAISS_INDEX_PATH)
-    print(f"Index updated and saved. Added {len(chunks)} chunks.")
+    # Add documents directly through the index
+    texts = [chunk.page_content for chunk in chunks]
+    metadatas = [chunk.metadata for chunk in chunks]
+    _vectorstore.add_texts(texts=texts, metadatas=metadatas)
+
+    print(f"Successfully added {len(chunks)} chunks to Pinecone.")
     return len(chunks)
+
+
+def reset_vectorstore():
+    global _vectorstore
+    from pinecone import Pinecone
+
+    pc = Pinecone(api_key=PINECONE_API_KEY)
+    index = pc.Index(PINECONE_INDEX_NAME)
+    index.delete(delete_all=True)
+    _vectorstore = None
+    print("Pinecone index cleared.")
